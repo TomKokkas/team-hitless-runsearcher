@@ -1,8 +1,18 @@
 import { loadRunData } from "./published-data.js";
+import {
+  VERIFIER_STATUSES,
+  availableVerifierOptions,
+  filterVerifierRuns,
+  isSafeExternalUrl,
+  loadVerifierQueue,
+} from "./verifier-queue.js";
 
 export const CSV_HEADERS = ["Runner", "Game", "Category", "Run name", "Run link"];
 
 const SEARCH_FIELDS = ["runner", "game", "category", "runName"];
+let activeCollectionView = "verifier";
+let officialDataSourceLabel = "Loading Official Runs…";
+let verifierDataSourceLabel = "Loading Verifier Queue…";
 const GAME_ALIAS_GROUPS = [
   {
     canonical: "Dark Souls",
@@ -486,6 +496,168 @@ function setOptions(select, values, allLabel, selectedValue = "") {
   select.value = values.includes(selectedValue) ? selectedValue : "";
 }
 
+function makeQueueCell(label, value) {
+  const cell = document.createElement("td");
+  cell.dataset.label = label;
+  cell.textContent = value || "—";
+  return cell;
+}
+
+function renderVerifierRows(runs, body) {
+  const fragment = document.createDocumentFragment();
+  for (const run of runs) {
+    const row = document.createElement("tr");
+    row.append(
+      makeQueueCell("Runner", run.runner),
+      makeQueueCell("Game", run.game),
+      makeQueueCell("Category", run.category),
+      makeQueueCell("Restrictions", run.restrictions),
+      makeQueueCell("Status", run.status),
+      makeQueueCell("Claimed by", run.claimedBy),
+    );
+
+    const linksCell = document.createElement("td");
+    linksCell.dataset.label = "Links";
+    if (isSafeExternalUrl(run.videoUrl)) {
+      const videoLink = document.createElement("a");
+      videoLink.href = run.videoUrl;
+      videoLink.target = "_blank";
+      videoLink.rel = "noopener noreferrer";
+      videoLink.textContent = "DEMO video";
+      linksCell.append(videoLink);
+    } else {
+      linksCell.textContent = run.videoUrl || "DEMO video unavailable";
+    }
+    linksCell.append(document.createTextNode(" · "));
+    const sheetLink = document.createElement("a");
+    sheetLink.href = run.googleSheetUrl;
+    sheetLink.target = "_blank";
+    sheetLink.rel = "noopener noreferrer";
+    sheetLink.textContent = `DEMO sheet · ${run.sourceSheet} row ${run.row}`;
+    linksCell.append(sheetLink);
+    row.append(linksCell);
+    fragment.append(row);
+  }
+  body.replaceChildren(fragment);
+}
+
+function initializeTabs() {
+  const tabs = [...document.querySelectorAll('[role="tab"]')];
+  const updateDataSource = () => {
+    document.querySelector("#data-source").textContent = activeCollectionView === "verifier"
+      ? verifierDataSourceLabel
+      : officialDataSourceLabel;
+  };
+  const selectTab = (activeTab) => {
+    activeCollectionView = activeTab.id === "verifier-tab" ? "verifier" : "official";
+    for (const tab of tabs) {
+      const selected = tab === activeTab;
+      tab.setAttribute("aria-selected", String(selected));
+      tab.tabIndex = selected ? 0 : -1;
+      document.getElementById(tab.getAttribute("aria-controls")).hidden = !selected;
+    }
+    updateDataSource();
+    activeTab.focus();
+  };
+
+  for (const [index, tab] of tabs.entries()) {
+    tab.addEventListener("click", () => selectTab(tab));
+    tab.addEventListener("keydown", (event) => {
+      if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) {
+        return;
+      }
+      event.preventDefault();
+      const nextIndex = event.key === "Home"
+        ? 0
+        : event.key === "End"
+          ? tabs.length - 1
+          : (index + (event.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length;
+      selectTab(tabs[nextIndex]);
+    });
+  }
+}
+
+function initializeVerifierQueue() {
+  const searchInput = document.querySelector("#queue-search-input");
+  const gameFilter = document.querySelector("#queue-game-filter");
+  const statusFilter = document.querySelector("#queue-status-filter");
+  const clearButton = document.querySelector("#queue-clear-filters");
+  const resultCount = document.querySelector("#queue-result-count");
+  const loadError = document.querySelector("#queue-load-error");
+  const emptyState = document.querySelector("#queue-empty-state");
+  const runsBody = document.querySelector("#queue-runs-body");
+  const previousPage = document.querySelector("#queue-previous-page");
+  const nextPage = document.querySelector("#queue-next-page");
+  const pageLabel = document.querySelector("#queue-page-label");
+  const pageSize = 100;
+  let runs = [];
+  let currentPage = 1;
+
+  const refresh = () => {
+    setOptions(gameFilter, availableVerifierOptions(runs, "game"), "All games", gameFilter.value);
+    setOptions(statusFilter, VERIFIER_STATUSES, "All statuses", statusFilter.value);
+    const results = filterVerifierRuns(runs, {
+      query: searchInput.value,
+      game: gameFilter.value,
+      status: statusFilter.value,
+    });
+    const pageCount = Math.max(1, Math.ceil(results.length / pageSize));
+    currentPage = Math.min(currentPage, pageCount);
+    const start = (currentPage - 1) * pageSize;
+    renderVerifierRows(results.slice(start, start + pageSize), runsBody);
+    resultCount.textContent = `${results.length.toLocaleString()} ${results.length === 1 ? "run" : "runs"}`;
+    pageLabel.textContent = `Page ${currentPage.toLocaleString()} of ${pageCount.toLocaleString()}`;
+    previousPage.disabled = currentPage === 1;
+    nextPage.disabled = currentPage === pageCount;
+    emptyState.hidden = results.length > 0;
+  };
+
+  const resetAndRefresh = () => {
+    currentPage = 1;
+    refresh();
+  };
+  searchInput.addEventListener("input", resetAndRefresh);
+  gameFilter.addEventListener("change", resetAndRefresh);
+  statusFilter.addEventListener("change", resetAndRefresh);
+  previousPage.addEventListener("click", () => {
+    currentPage--;
+    refresh();
+  });
+  nextPage.addEventListener("click", () => {
+    currentPage++;
+    refresh();
+  });
+  clearButton.addEventListener("click", () => {
+    searchInput.value = "";
+    gameFilter.value = "";
+    statusFilter.value = "";
+    currentPage = 1;
+    refresh();
+    searchInput.focus();
+  });
+
+  loadVerifierQueue()
+    .then((queueRuns) => {
+      runs = queueRuns;
+      verifierDataSourceLabel = "Verifier Queue snapshot";
+      if (activeCollectionView === "verifier") {
+        document.querySelector("#data-source").textContent = verifierDataSourceLabel;
+      }
+      refresh();
+    })
+    .catch((error) => {
+      verifierDataSourceLabel = "Verifier Queue unavailable";
+      if (activeCollectionView === "verifier") {
+        document.querySelector("#data-source").textContent = verifierDataSourceLabel;
+      }
+      resultCount.textContent = "Data unavailable";
+      loadError.textContent = `${error.message} Start a local HTTP server from the project root and reload.`;
+      loadError.hidden = false;
+      emptyState.hidden = false;
+      emptyState.textContent = "Verifier queue data could not be loaded.";
+    });
+}
+
 export async function loadRuns(url = "./data/runs.csv", fetchImplementation = globalThis.fetch) {
   if (typeof fetchImplementation !== "function") {
     throw new Error("Fetch is unavailable. Open this page through a local HTTP server.");
@@ -538,9 +710,12 @@ function initializePage() {
   loadRunData({ loadFallback: () => loadRuns() })
     .then((data) => {
       runs = data.runs;
-      dataSource.textContent = data.source === "published"
+      officialDataSourceLabel = data.source === "published"
         ? "Published data"
         : "Older local CSV preview";
+      dataSource.textContent = activeCollectionView === "official"
+        ? officialDataSourceLabel
+        : verifierDataSourceLabel;
       if (data.warning) {
         loadError.textContent = data.warning;
         loadError.hidden = false;
@@ -552,11 +727,17 @@ function initializePage() {
       loadError.textContent = `${error.message} Start a local HTTP server from the project root and reload.`;
       loadError.hidden = false;
       dataSource.textContent = "Data unavailable";
+      officialDataSourceLabel = "Official Runs unavailable";
+      if (activeCollectionView === "official") {
+        dataSource.textContent = officialDataSourceLabel;
+      }
       emptyState.hidden = false;
       emptyState.textContent = "Runs could not be loaded.";
     });
 }
 
 if (typeof document !== "undefined") {
+  initializeTabs();
+  initializeVerifierQueue();
   initializePage();
 }
