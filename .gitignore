@@ -1,0 +1,29 @@
+# Editor and operating-system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.swp
+
+# Build output and dependencies
+node_modules/
+target/
+out/
+build/
+dist/
+
+# Logs and temporary files
+*.log
+npm-debug.log*
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Collection data and checkpoints (never publish local collection output)
+collection-data/
+collection-output/
+collection-checkpoints/
+checkpoints/
+*.chk
+collected-runs.json

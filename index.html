@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Search and explore Team Hitless challenge runs. Unofficial community project under development; the static preview uses older data.">
+  <meta property="og:title" content="Team Hitless RunSearcher">
+  <meta property="og:description" content="Search and explore Team Hitless challenge runs.">
+  <title>Team Hitless RunSearcher</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <main class="page-shell">
+    <header class="site-header">
+      <div>
+        <p class="eyebrow">Team Hitless run archive</p>
+        <h1>Team Hitless RunSearcher</h1>
+        <p class="intro">Search and explore Team Hitless challenge runs.</p>
+        <p class="project-note">Unofficial community project under development; not affiliated with Team Hitless.</p>
+      </div>
+      <span class="data-badge"><span class="status-dot" aria-hidden="true"></span> <span id="data-source">Loading data source…</span></span>
+    </header>
+
+    <section class="search-panel" aria-label="Search and filter runs">
+      <label class="search-field" for="search-input">
+        <span>Search runs</span>
+        <input id="search-input" type="search" placeholder="Try a runner, game, or run name" autocomplete="off">
+      </label>
+      <label for="game-filter">
+        <span>Game</span>
+        <select id="game-filter">
+          <option value="">All games</option>
+        </select>
+      </label>
+      <label for="category-filter">
+        <span>Category</span>
+        <select id="category-filter">
+          <option value="">All categories</option>
+        </select>
+      </label>
+      <button id="clear-filters" class="clear-button" type="button">Clear filters</button>
+    </section>
+
+    <section class="results-section" aria-labelledby="results-heading">
+      <div class="results-heading">
+        <h2 id="results-heading">Runs</h2>
+        <p id="result-count" class="result-count" aria-live="polite">Loading runs…</p>
+      </div>
+      <p id="load-error" class="error-message" role="alert" hidden></p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Runner</th>
+              <th scope="col">Game</th>
+              <th scope="col">Category</th>
+              <th scope="col">Run name</th>
+              <th scope="col">Run link</th>
+            </tr>
+          </thead>
+          <tbody id="runs-body"></tbody>
+        </table>
+      </div>
+      <p id="empty-state" class="empty-state" hidden>No runs match these filters.</p>
+    </section>
+
+    <footer class="page-footer">Static hosting uses the older local CSV preview, which is not updated automatically. Automatic data updates are not enabled.</footer>
+  </main>
+</body>
+</html>
