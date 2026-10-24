@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Search and explore Team Hitless challenge runs. Unofficial community project under development; the static preview uses older data.">
+  <meta name="description" content="Search the Team Hitless Verifier Queue preview and explore challenge runs. Unofficial community project under development.">
   <meta property="og:title" content="Team Hitless RunSearcher">
   <meta property="og:description" content="Search and explore Team Hitless challenge runs.">
   <title>Team Hitless RunSearcher</title>
@@ -30,11 +30,10 @@
     </nav>
 
     <section id="verifier-panel" role="tabpanel" aria-labelledby="verifier-tab">
-      <p class="queue-notice">
-        <strong>DEMO DATA ONLY:</strong> every queue entry and link below is fictional test content.
-        No workbook data is loaded. This preview is read-only; Accepted does not mean published on Team Hitless.
+      <p id="queue-notice" class="queue-notice" hidden>
+        Read-only snapshot from verifier workbook submissions. Accepted here reflects the workbook verdict and does not mean the run is published on Team Hitless.
       </p>
-      <section class="search-panel queue-search-panel" aria-label="Search and filter verifier queue">
+      <section id="queue-search-panel" class="search-panel queue-search-panel" aria-label="Search and filter verifier queue">
         <label class="search-field" for="queue-search-input">
           <span>Search runs</span>
           <input id="queue-search-input" type="search" placeholder="Try a runner, game, or run / restrictions" autocomplete="off">

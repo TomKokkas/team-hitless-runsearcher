@@ -4,9 +4,11 @@ Team Hitless RunSearcher is a static web app for searching and exploring Team Hi
 
 ## Data status
 
-This GitHub Pages-ready static edition uses the older CSV preview included at `data/runs.csv`. The data is not updated automatically; automatic updates are not enabled. Published releases are not served by GitHub Pages, so this static site uses the local CSV fallback.
+This GitHub Pages-ready static edition serves its Verifier Queue preview from `data/verifier-queue-public.json`, using the same relative URL locally and on GitHub Pages. Accepted Runs continues to use the older CSV preview at `data/runs.csv`. Neither dataset updates automatically.
 
-The local **Verifier Queue** tab currently contains 12 clearly marked fictional demo records in `data/verifier-queue-demo.json`. No verifier workbook data is imported, and the demo links do not refer to real runs or a real sheet. Queue state changes are not supported by the website.
+The full local workbook import (`data/verifier-queue-workbook.json`) and its diagnostics (`data/verifier-queue-workbook-report.json`) remain ignored by Git. The original `.xlsx` workbook is also ignored. Only the approved UI fields are projected into the public JSON: `runner`, `game`, `runType`, `originalRunText`, `category`, `restrictions`, `categorySplitReliable`, `videoUrl`, `status`, and `verifier`. The importer metadata, source row references, raw verdict and dates, and diagnostics are omitted. The verifier queue is read-only; a workbook verdict does not publish a run on Team Hitless.
+
+Run `node .\verifier-workbook-import.mjs` to create the local import and report from `C:\Users\User\Downloads\TH Verifier workbook.xlsx`; add `--overwrite` when intentionally regenerating existing output files. After reviewing the import, run `node .\publish-verifier-queue.mjs` to create or refresh the public projection from the local JSON; it refuses to overwrite an existing public file unless `--overwrite` is supplied. It validates the exact 16,234-record count and status totals before writing. Run `node --test .\tests\verifier-queue.test.mjs .\tests\publish-verifier-queue.test.mjs .\tests\verifier-workbook-import.test.mjs` to validate the queue projection and workbook import.
 
 ## Credits
 

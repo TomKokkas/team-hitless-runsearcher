@@ -11,6 +11,7 @@
   --muted: #aab7c6;
   --accent: #69d3b2;
   --accent-strong: #30a989;
+  --queue-sticky-offset: 0px;
 }
 
 * {
@@ -167,7 +168,11 @@ h1 {
 }
 
 .queue-search-panel {
+  top: 0;
+  z-index: 30;
   grid-template-columns: minmax(230px, 2fr) repeat(2, minmax(160px, 1fr)) auto;
+  border-radius: 12px 12px 0 0;
+  box-shadow: 0 8px 18px rgb(0 0 0 / 18%);
 }
 
 .search-panel label {
@@ -254,7 +259,7 @@ h1 {
 }
 
 .table-wrap {
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid var(--border);
   border-radius: 13px;
   background: var(--surface);
@@ -264,6 +269,34 @@ table {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
+}
+
+#verifier-panel .results-section {
+  margin-top: 18px;
+}
+
+#verifier-panel .table-wrap {
+  margin-top: 0;
+  border-radius: 0 0 13px 13px;
+}
+
+#verifier-panel table {
+  table-layout: fixed;
+}
+
+#verifier-panel thead th {
+  position: sticky;
+  top: var(--queue-sticky-offset);
+  z-index: 20;
+  border-bottom: 1px solid #465769;
+  box-shadow: 0 2px 4px rgb(0 0 0 / 16%);
+}
+
+#verifier-panel th:nth-child(5),
+#verifier-panel td:nth-child(5) {
+  width: 9rem;
+  white-space: nowrap;
+  overflow-wrap: normal;
 }
 
 th,
@@ -376,18 +409,18 @@ td a:hover {
     padding: 0 8px;
   }
 
-  .table-wrap {
+  #official-panel .table-wrap {
     overflow: visible;
     border: 0;
     background: transparent;
   }
 
-  table,
-  tbody {
+  #official-panel table,
+  #official-panel tbody {
     display: block;
   }
 
-  thead {
+  #official-panel thead {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -397,12 +430,12 @@ td a:hover {
     clip-path: inset(50%);
   }
 
-  tbody {
+  #official-panel tbody {
     display: grid;
     gap: 12px;
   }
 
-  tbody tr {
+  #official-panel tbody tr {
     display: grid;
     gap: 0;
     padding: 4px 14px;
@@ -411,7 +444,7 @@ td a:hover {
     background: var(--surface);
   }
 
-  td {
+  #official-panel td {
     display: grid;
     grid-template-columns: minmax(86px, 0.38fr) minmax(0, 1fr);
     gap: 12px;
@@ -420,7 +453,7 @@ td a:hover {
     font-size: 0.86rem;
   }
 
-  td::before {
+  #official-panel td::before {
     content: attr(data-label);
     color: #9eacbb;
     font-size: 0.73rem;
@@ -429,12 +462,76 @@ td a:hover {
     text-transform: uppercase;
   }
 
-  tbody tr:last-child td {
+  #official-panel tbody tr:last-child td {
     border-bottom: 1px solid #2d3947;
   }
 
-  tbody tr td:last-child {
+  #official-panel tbody tr td:last-child {
     border-bottom: 0;
+  }
+
+  #verifier-panel .queue-search-panel {
+    gap: 10px;
+    padding: 12px;
+    border-radius: 10px 10px 0 0;
+  }
+
+  #verifier-panel .table-wrap {
+    overflow: visible;
+    border: 1px solid var(--border);
+    border-top: 0;
+    background: var(--surface);
+  }
+
+  #verifier-panel table {
+    display: table;
+    width: 100%;
+    table-layout: fixed;
+  }
+
+  #verifier-panel thead {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
+    clip-path: none;
+  }
+
+  #verifier-panel tbody {
+    display: table-row-group;
+  }
+
+  #verifier-panel tbody tr {
+    display: table-row;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+  }
+
+  #verifier-panel th,
+  #verifier-panel td {
+    padding: 8px 5px;
+    font-size: 0.68rem;
+    overflow-wrap: anywhere;
+  }
+
+  #verifier-panel th {
+    font-size: 0.61rem;
+    letter-spacing: 0.02em;
+  }
+
+  #verifier-panel th:nth-child(5),
+  #verifier-panel td:nth-child(5) {
+    width: 6.4rem;
+    padding-right: 7px;
+    padding-left: 7px;
+  }
+
+  #verifier-panel td::before {
+    content: none;
   }
 }
 

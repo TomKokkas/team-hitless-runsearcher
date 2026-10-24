@@ -27,3 +27,8 @@ collection-checkpoints/
 checkpoints/
 *.chk
 collected-runs.json
+
+# Local verifier workbook import (contains real submissions)
+data/verifier-queue-workbook.json
+data/verifier-queue-workbook-report.json
+*.xlsx

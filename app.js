@@ -5,6 +5,8 @@ import {
   filterVerifierRuns,
   isSafeExternalUrl,
   loadVerifierQueue,
+  verifierDisplayCategory,
+  verifierDisplayRestrictions,
 } from "./verifier-queue.js";
 
 export const CSV_HEADERS = ["Runner", "Game", "Category", "Run name", "Run link"];
@@ -503,17 +505,17 @@ function makeQueueCell(label, value) {
   return cell;
 }
 
-function renderVerifierRows(runs, body) {
+export function renderVerifierRows(runs, body) {
   const fragment = document.createDocumentFragment();
   for (const run of runs) {
     const row = document.createElement("tr");
     row.append(
       makeQueueCell("Runner", run.runner),
       makeQueueCell("Game", run.game),
-      makeQueueCell("Category", run.category),
-      makeQueueCell("Restrictions", run.restrictions),
+      makeQueueCell("Category", verifierDisplayCategory(run)),
+      makeQueueCell("Restrictions", verifierDisplayRestrictions(run)),
       makeQueueCell("Status", run.status),
-      makeQueueCell("Claimed by", run.claimedBy),
+      makeQueueCell("Claimed by", run.claimedBy || run.verifier),
     );
 
     const linksCell = document.createElement("td");
@@ -523,18 +525,11 @@ function renderVerifierRows(runs, body) {
       videoLink.href = run.videoUrl;
       videoLink.target = "_blank";
       videoLink.rel = "noopener noreferrer";
-      videoLink.textContent = "DEMO video";
+      videoLink.textContent = run.videoUrl;
       linksCell.append(videoLink);
     } else {
-      linksCell.textContent = run.videoUrl || "DEMO video unavailable";
+      linksCell.textContent = run.videoUrl || "Video unavailable";
     }
-    linksCell.append(document.createTextNode(" · "));
-    const sheetLink = document.createElement("a");
-    sheetLink.href = run.googleSheetUrl;
-    sheetLink.target = "_blank";
-    sheetLink.rel = "noopener noreferrer";
-    sheetLink.textContent = `DEMO sheet · ${run.sourceSheet} row ${run.row}`;
-    linksCell.append(sheetLink);
     row.append(linksCell);
     fragment.append(row);
   }
@@ -579,6 +574,7 @@ function initializeTabs() {
 
 function initializeVerifierQueue() {
   const searchInput = document.querySelector("#queue-search-input");
+  const searchPanel = document.querySelector("#queue-search-panel");
   const gameFilter = document.querySelector("#queue-game-filter");
   const statusFilter = document.querySelector("#queue-status-filter");
   const clearButton = document.querySelector("#queue-clear-filters");
@@ -592,10 +588,20 @@ function initializeVerifierQueue() {
   const pageSize = 100;
   let runs = [];
   let currentPage = 1;
+  let searchDebounce;
+  const updateQueueStickyOffset = () => {
+    document.documentElement.style.setProperty(
+      "--queue-sticky-offset",
+      `${searchPanel.getBoundingClientRect().height}px`,
+    );
+  };
+  const searchPanelResizeObserver = new ResizeObserver(updateQueueStickyOffset);
+  searchPanelResizeObserver.observe(searchPanel);
+  window.addEventListener("resize", updateQueueStickyOffset);
+  window.addEventListener("scroll", updateQueueStickyOffset, { passive: true });
+  updateQueueStickyOffset();
 
   const refresh = () => {
-    setOptions(gameFilter, availableVerifierOptions(runs, "game"), "All games", gameFilter.value);
-    setOptions(statusFilter, VERIFIER_STATUSES, "All statuses", statusFilter.value);
     const results = filterVerifierRuns(runs, {
       query: searchInput.value,
       game: gameFilter.value,
@@ -606,7 +612,9 @@ function initializeVerifierQueue() {
     const start = (currentPage - 1) * pageSize;
     renderVerifierRows(results.slice(start, start + pageSize), runsBody);
     resultCount.textContent = `${results.length.toLocaleString()} ${results.length === 1 ? "run" : "runs"}`;
-    pageLabel.textContent = `Page ${currentPage.toLocaleString()} of ${pageCount.toLocaleString()}`;
+    const visibleStart = results.length === 0 ? 0 : start + 1;
+    const visibleEnd = Math.min(start + pageSize, results.length);
+    pageLabel.textContent = `Page ${currentPage.toLocaleString()} of ${pageCount.toLocaleString()} · showing ${visibleStart.toLocaleString()}–${visibleEnd.toLocaleString()}`;
     previousPage.disabled = currentPage === 1;
     nextPage.disabled = currentPage === pageCount;
     emptyState.hidden = results.length > 0;
@@ -616,7 +624,10 @@ function initializeVerifierQueue() {
     currentPage = 1;
     refresh();
   };
-  searchInput.addEventListener("input", resetAndRefresh);
+  searchInput.addEventListener("input", () => {
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(resetAndRefresh, 120);
+  });
   gameFilter.addEventListener("change", resetAndRefresh);
   statusFilter.addEventListener("change", resetAndRefresh);
   previousPage.addEventListener("click", () => {
@@ -628,6 +639,7 @@ function initializeVerifierQueue() {
     refresh();
   });
   clearButton.addEventListener("click", () => {
+    clearTimeout(searchDebounce);
     searchInput.value = "";
     gameFilter.value = "";
     statusFilter.value = "";
@@ -643,6 +655,9 @@ function initializeVerifierQueue() {
       if (activeCollectionView === "verifier") {
         document.querySelector("#data-source").textContent = verifierDataSourceLabel;
       }
+      document.querySelector("#queue-notice").hidden = false;
+      setOptions(gameFilter, availableVerifierOptions(runs, "game"), "All games");
+      setOptions(statusFilter, VERIFIER_STATUSES, "All statuses");
       refresh();
     })
     .catch((error) => {
@@ -653,6 +668,9 @@ function initializeVerifierQueue() {
       resultCount.textContent = "Data unavailable";
       loadError.textContent = `${error.message} Start a local HTTP server from the project root and reload.`;
       loadError.hidden = false;
+      runsBody.replaceChildren();
+      previousPage.disabled = true;
+      nextPage.disabled = true;
       emptyState.hidden = false;
       emptyState.textContent = "Verifier queue data could not be loaded.";
     });
